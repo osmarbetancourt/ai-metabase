@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+openai-agents==0.2.10
+openai>=1.99.3
+pydantic
+httpx
