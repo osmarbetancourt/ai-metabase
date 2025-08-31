@@ -18,10 +18,8 @@ class PromptResponse(BaseModel):
     sql: str = ""
     viz_type: str = ""
 
-@app.get("/")
-async def healthcheck():
-    return {"status": "ok"}
 
+@app.get("/")
 @app.get("/healthz")
 async def healthcheck():
     return {"status": "ok"}
