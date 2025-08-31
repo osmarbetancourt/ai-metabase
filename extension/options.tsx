@@ -51,12 +51,29 @@ const containerStyle: React.CSSProperties = {
 const Options = () => {
   const [settings, setSettings] = useState(defaultSettings)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Load non-sensitive settings from sync
     chrome.storage.sync.get([STORAGE_KEY], (result) => {
-      if (result[STORAGE_KEY]) {
-        setSettings(result[STORAGE_KEY])
+      if (chrome.runtime.lastError) {
+        setError("Failed to load settings: " + chrome.runtime.lastError.message)
+        return
       }
+      const syncSettings = result[STORAGE_KEY] || {}
+      // Load sensitive fields from local
+      chrome.storage.local.get([STORAGE_KEY], (localResult) => {
+        if (chrome.runtime.lastError) {
+          setError("Failed to load sensitive settings: " + chrome.runtime.lastError.message)
+          return
+        }
+        const localSettings = localResult[STORAGE_KEY] || {}
+        setSettings({
+          ...defaultSettings,
+          ...syncSettings,
+          ...localSettings // password from local overrides sync
+        })
+      })
     })
   }, [])
 
@@ -65,9 +82,29 @@ const Options = () => {
   }
 
   const handleSave = () => {
-    chrome.storage.sync.set({ [STORAGE_KEY]: settings }, () => {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 1500)
+    setError(null)
+    // Validate required fields
+    if (!settings.mikaUrl || !settings.metabaseUrl || !settings.username) {
+      setError("Please fill in all required fields.")
+      return
+    }
+    // Save non-sensitive settings to sync
+    const syncSettings = { ...settings }
+    delete syncSettings.password
+    chrome.storage.sync.set({ [STORAGE_KEY]: syncSettings }, () => {
+      if (chrome.runtime.lastError) {
+        setError("Failed to save settings: " + chrome.runtime.lastError.message)
+        return
+      }
+      // Save sensitive fields to local
+      chrome.storage.local.set({ [STORAGE_KEY]: { password: settings.password } }, () => {
+        if (chrome.runtime.lastError) {
+          setError("Failed to save sensitive settings: " + chrome.runtime.lastError.message)
+          return
+        }
+        setSaved(true)
+        setTimeout(() => setSaved(false), 1500)
+      })
     })
   }
 
@@ -113,6 +150,7 @@ const Options = () => {
       />
       <button style={buttonStyle} onClick={handleSave}>Save Settings</button>
       {saved && <div style={{ color: "#388e3c", marginTop: 12 }}>Settings saved!</div>}
+      {error && <div style={{ color: "#d32f2f", marginTop: 12 }}>{error}</div>}
     </div>
   )
 }

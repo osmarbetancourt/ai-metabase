@@ -52,6 +52,7 @@ const containerStyle: React.CSSProperties = {
 const Popup = () => {
   const [settings, setSettings] = useState(defaultSettings)
   const [saved, setSaved] = useState(false)
+  const [loginStatus, setLoginStatus] = useState<string | null>(null)
 
   useEffect(() => {
     chrome.storage.sync.get([STORAGE_KEY], (result) => {
@@ -65,11 +66,31 @@ const Popup = () => {
     setSettings({ ...settings, [e.target.name]: e.target.value })
   }
 
-  const handleSave = () => {
-    chrome.storage.sync.set({ [STORAGE_KEY]: settings }, () => {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 1500)
-    })
+  const handleSave = async () => {
+    setLoginStatus(null)
+    // Try to login to Mika backend
+    try {
+      const res = await fetch(`${settings.mikaUrl.replace(/\/$/, "")}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: settings.username, password: settings.password })
+      })
+      if (!res.ok) {
+        setLoginStatus("Login failed: Invalid credentials or server error.")
+        return
+      }
+      const data = await res.json()
+      // Save token and settings
+      chrome.storage.sync.set({
+        [STORAGE_KEY]: { ...settings, mikaToken: data.token, mikaTokenExpires: Date.now() + (data.expires_in * 1000) }
+      }, () => {
+        setSaved(true)
+        setLoginStatus("Login successful!")
+        setTimeout(() => { setSaved(false); setLoginStatus(null) }, 1500)
+      })
+    } catch (err) {
+      setLoginStatus("Login failed: Network error.")
+    }
   }
 
   return (
@@ -100,7 +121,7 @@ const Popup = () => {
         name="username"
         value={settings.username}
         onChange={handleChange}
-        placeholder="Metabase Username"
+        placeholder="Mika Username"
       />
       <label style={labelStyle} htmlFor="password">Password</label>
       <input
@@ -110,10 +131,11 @@ const Popup = () => {
         type="password"
         value={settings.password}
         onChange={handleChange}
-        placeholder="Metabase Password"
+        placeholder="Mika Password"
       />
-      <button style={buttonStyle} onClick={handleSave}>Save Settings</button>
+      <button style={buttonStyle} onClick={handleSave}>Save & Login</button>
       {saved && <div style={{ color: "#388e3c", marginTop: 12 }}>Settings saved!</div>}
+      {loginStatus && <div style={{ color: loginStatus.includes("success") ? "#388e3c" : "#d32f2f", marginTop: 12 }}>{loginStatus}</div>}
     </div>
   )
 }

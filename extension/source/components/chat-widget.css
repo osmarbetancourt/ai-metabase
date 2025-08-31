@@ -1,3 +1,26 @@
+.mika-sql-block code {
+  background: none;
+  padding: 0;
+  font-family: inherit;
+}
+.mika-chat-input {
+  /* textarea auto-grow styles */
+  min-height: 36px;
+  max-height: 120px;
+  resize: none;
+  overflow: auto;
+}
+/* Message row wrapper for alignment */
+.mika-chat-row {
+  display: flex;
+  width: 100%;
+}
+.mika-chat-row.user {
+  justify-content: flex-end;
+}
+.mika-chat-row.assistant {
+  justify-content: flex-start;
+}
 .mika-chat-widget {
   position: fixed;
   bottom: 32px;
@@ -21,8 +44,8 @@
   background: #f5f5f5;
 }
 .mika-chat-window {
-  width: 340px;
-  max-height: 420px;
+  width: 476px;
+  max-height: 588px;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 16px;
@@ -37,16 +60,49 @@
   overflow-y: auto;
   background: #fafbfc;
 }
-.mika-chat-msg {
-  margin-bottom: 10px;
-  line-height: 1.5;
+.mika-chat-bubble {
+  word-break: break-word;
+  line-height: 1.6;
+  border-radius: 18px;
+  margin: 8px 0;
+  padding: 12px 16px;
+  max-width: 70%;
+  font-size: 17px;
+  font-weight: 400;
+  box-shadow: 0 2px 8px rgba(26,115,232,0.04);
+  transition: box-shadow 0.2s;
 }
-.mika-chat-msg-mika {
-  color: #1a73e8;
+.mika-chat-bubble-user {
+  background: #e3e8ef;
+  color: #222;
 }
-.mika-chat-msg-user {
-  color: #333;
-  text-align: right;
+.mika-chat-bubble-assistant {
+  align-self: flex-start;
+  background: #e3f2fd;
+  color: #1760c4;
+  margin-right: auto;
+  margin-left: 8px;
+}
+.mika-chat-messages {
+  /* Ensure bubbles don't touch the window edge */
+  padding-left: 10px;
+  padding-right: 0;
+}
+@media (max-width: 480px) {
+  .mika-chat-window {
+    width: 98vw;
+    min-width: 0;
+    border-radius: 8px;
+  }
+  .mika-chat-bubble {
+    max-width: 90%;
+    font-size: 16px;
+    padding: 10px 10px;
+  }
+  .mika-chat-bubble-user, .mika-chat-bubble-assistant {
+    margin-left: 4px;
+    margin-right: 4px;
+  }
 }
 .mika-chat-input-row {
   display: flex;
