@@ -124,6 +124,80 @@ async def create_metabase_card(sql: str, name: str, viz_type: str = "table") -> 
         logger.error(f"Error creating Metabase card: {e}", exc_info=True)
         return {"error": f"Error creating Metabase card: {e}"}
 
+# Tool: List Metabase cards by name substring
+@function_tool
+async def list_cards_by_name(name_substring: str) -> list:
+    """
+    List all Metabase cards (questions) whose name contains the given substring (case-insensitive).
+    Returns a list of dicts with card id, name, and URL.
+    """
+    logger = logging.getLogger("metabase_agent")
+    if not METABASE_URL or not METABASE_TOKEN:
+        logger.error("Metabase URL or token not configured.")
+        return []
+    url = f"{METABASE_URL}/api/card"
+    headers = {"X-API-Key": METABASE_TOKEN}
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=headers, timeout=15)
+            resp.raise_for_status()
+            cards = resp.json()
+            # Filter by name substring (case-insensitive)
+            result = []
+            for card in cards:
+                if name_substring.lower() in card.get("name", "").lower():
+                    result.append({
+                        "id": card.get("id"),
+                        "name": card.get("name"),
+                        "url": f"{METABASE_URL}/card/{card.get('id')}"
+                    })
+            return result
+    except Exception as e:
+        logger.error(f"Error listing cards: {e}", exc_info=True)
+        return []
+
+# Tool: Update Metabase card (by ID)
+@function_tool
+async def update_card(
+    card_id: int,
+    sql: Optional[str] = None,
+    name: Optional[str] = None,
+    viz_type: Optional[str] = None
+) -> dict:
+    """
+    Update a Metabase card (question) by ID. You can update the SQL, name, and/or visualization type.
+    Only provided fields will be changed. Returns updated card info or error.
+    """
+    logger = logging.getLogger("metabase_agent")
+    if not METABASE_URL or not METABASE_TOKEN:
+        logger.error("Metabase URL or token not configured.")
+        return {"error": "Metabase URL or token not configured."}
+    url = f"{METABASE_URL}/api/card/{card_id}"
+    headers = {"X-API-Key": METABASE_TOKEN, "Content-Type": "application/json"}
+    # Get current card
+    try:
+        async with httpx.AsyncClient() as client:
+            get_resp = await client.get(url, headers=headers, timeout=15)
+            get_resp.raise_for_status()
+            card = get_resp.json()
+            # Update fields if provided
+            if sql:
+                if "dataset_query" in card:
+                    card["dataset_query"]["native"]["query"] = sql
+            if name:
+                card["name"] = name
+            if viz_type:
+                card["display"] = viz_type
+            # Always set visualization_settings to {}
+            card["visualization_settings"] = {}
+            put_resp = await client.put(url, headers=headers, json=card, timeout=15)
+            put_resp.raise_for_status()
+            updated = put_resp.json()
+            return {"id": updated.get("id"), "name": updated.get("name"), "url": f"{METABASE_URL}/card/{updated.get('id')}", "raw": updated}
+    except Exception as e:
+        logger.error(f"Error updating card: {e}", exc_info=True)
+        return {"error": f"Error updating card: {e}"}
+
 # Tool: Generate SQL from prompt
 @function_tool
 def generate_sql(prompt: str) -> str:
@@ -181,10 +255,10 @@ metabase_agent = Agent(
     name="Mika SQL",
     instructions="""
     You are Mika, an AI assistant that generates SQL queries and Metabase visualizations from user prompts.
-    Use the available tools to generate SQL, create Metabase cards, and show your current context as needed.
+    Use the available tools to generate SQL, create Metabase cards, update cards, list cards by name, and show your current context as needed.
     """,
     model="gpt-5-nano",
-    tools=[generate_sql, create_card, end_conversation, show_metabase_context]
+    tools=[generate_sql, create_card, update_card, list_cards_by_name, end_conversation, show_metabase_context]
 )
 
 # Helper to inject metadata context for agent runs
