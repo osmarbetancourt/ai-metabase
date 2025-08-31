@@ -1,6 +1,6 @@
-fastapi
-uvicorn
+fastapi==0.115.0
+uvicorn==0.32.0
 openai-agents==0.2.10
 openai>=1.99.3
-pydantic
-httpx
+pydantic==2.9.2
+httpx==0.27.2

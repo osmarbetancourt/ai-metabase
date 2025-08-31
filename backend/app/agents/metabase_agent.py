@@ -31,20 +31,26 @@ async def list_metabase_databases() -> str:
         return "Metabase URL or token not configured."
     url = f"{METABASE_URL}/api/database"
     headers = {"X-API-Key": METABASE_TOKEN}
-    logger.info(f"Attempting to connect to Metabase at {url} with token {METABASE_TOKEN[:8]}... (truncated)")
+    logger.info(f"Attempting to connect to Metabase at {url}")
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, headers=headers, timeout=10)
             logger.info(f"Metabase API response status: {resp.status_code}")
             resp.raise_for_status()
             resp_json = resp.json()
-            dbs = resp_json.get("data", [])
-            logger.info(f"Received databases: {dbs}")
+            # Metabase /api/database returns a list (array) or sometimes a dict with 'data'
+            if isinstance(resp_json, list):
+                dbs = resp_json
+            elif isinstance(resp_json, dict) and "data" in resp_json:
+                dbs = resp_json["data"]
+            else:
+                dbs = []
+            logger.info(f"Received {len(dbs)} databases from Metabase.")
             names = [db.get("name", "(no name)") for db in dbs]
             return "Databases: " + ", ".join(names)
     except Exception as e:
         logger.error(f"Error listing databases: {e}", exc_info=True)
-        return f"Error listing databases: {e}"
+        return "Error listing databases: internal error"
 
 # Tool: Generate SQL from prompt
 @function_tool
