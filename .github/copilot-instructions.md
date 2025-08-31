@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-This project is building an AI-powered browser extension that embeds a chat assistant directly into the Metabase UI (cloud or on-premise). The assistant helps users generate SQL queries, create dashboards, and visualize data using natural language without modifying Metabase itself.
+This project is building an AI-powered browser extension that embeds a chat assistant called **Mika** directly into the Metabase UI (cloud or on-premise). Mika helps users generate SQL queries, create dashboards, and visualize data using natural language without modifying Metabase itself.
+
+**Current Status**: Mika agent is implemented using OpenAI Agents SDK with basic Metabase integration. The FastAPI backend is functional, and browser extension development is in progress.
 
 ## Architecture & Components
 
@@ -15,8 +17,8 @@ This project is building an AI-powered browser extension that embeds a chat assi
 ### User Flow
 1. User clicks floating chat button in Metabase
 2. User types natural language request (e.g., "Show me a pie chart of payment methods last month")
-3. Extension sends prompt to AI backend
-4. Backend generates SQL and visualization instructions using LLM
+3. Extension sends prompt to Mika via AI backend
+4. Mika processes request using OpenAI Agents SDK and generates SQL and visualization instructions
 5. Extension creates new question in Metabase via API and returns link/preview
 
 ## Tech Stack & Key Technologies
@@ -28,15 +30,15 @@ This project is building an AI-powered browser extension that embeds a chat assi
 - **CSS/Styled Components** for styling the chat widget
 
 ### Backend (AI Service)
-- **FastAPI** for async Python web framework
-- **OpenAI Agents SDK** for LLM orchestration and agent logic
-- **Pydantic** for data validation and API schemas
-- **Python 3.8+** as base runtime
+- **FastAPI** for async Python web framework (✅ Implemented)
+- **OpenAI Agents SDK** for LLM orchestration and agent logic (✅ Implemented - Mika agent)
+- **Pydantic** for data validation and API schemas (✅ Implemented)
+- **Python 3.8+** as base runtime (✅ Implemented)
 
 ### Integration & APIs
-- **Metabase REST API** for creating cards, dashboards, and visualizations
-- **OpenAI API** for natural language processing and SQL generation
-- **Docker** for containerized deployment
+- **Metabase REST API** for creating cards, dashboards, and visualizations (✅ Basic implementation)
+- **OpenAI API** for natural language processing and SQL generation (✅ Implemented via Agents SDK)
+- **Docker** for containerized deployment (✅ Implemented)
 
 ## Development Guidelines
 
@@ -112,8 +114,9 @@ uvicorn = "^0.23.0"
 ### Environment Configuration
 - Use **.env files** for configuration management
 - Support **OPENAI_API_KEY** environment variable
-- Configure **METABASE_BASE_URL** for API endpoints
-- Set **CORS_ORIGINS** for browser extension integration
+- Configure **METABASE_BASE_URL** for API endpoints (✅ Implemented as METABASE_URL)
+- Configure **METABASE_TOKEN** for API authentication (✅ Implemented)
+- Set **CORS_ORIGINS** for browser extension integration (🚧 Planned)
 
 ### Testing Strategy
 - **Unit tests** for individual components and functions
@@ -123,25 +126,44 @@ uvicorn = "^0.23.0"
 
 ## Agent Development with OpenAI SDK
 
+### Mika Agent Implementation
+**Current Status**: Mika agent is implemented with the following tools:
+- `generate_sql`: Generate SQL queries from natural language prompts
+- `create_card`: Create Metabase cards with SQL and visualization types  
+- `list_metabase_databases`: List available Metabase databases via REST API
+- `end_conversation`: End conversation functionality
+
 ### Agent Architecture
-- Use **OpenAI Agents SDK** for orchestrating LLM interactions
-- Implement **custom tools** for Metabase API operations
-- Use **session memory** to maintain conversation context
-- Implement **streaming responses** for real-time chat experience
+- **✅ OpenAI Agents SDK** for orchestrating LLM interactions (implemented)
+- **✅ Custom tools** for Metabase API operations (basic implementation)
+- **🚧 Session memory** to maintain conversation context (planned)
+- **🚧 Streaming responses** for real-time chat experience (planned)
 
 ### Tool Development Patterns
 ```python
-from openai import OpenAI
-from pydantic import BaseModel
+# Current Mika Agent Implementation
+from agents import Agent, function_tool, RunContextWrapper
 
-class MetabaseQueryTool(BaseModel):
-    """Tool for creating Metabase queries"""
-    query: str
-    visualization_type: str
-    
-    def execute(self) -> dict:
-        # Implementation for Metabase API calls
-        pass
+@function_tool
+def create_card(sql: str, viz_type: str = "bar") -> dict:
+    """Create a Metabase card (question) with the given SQL and visualization type."""
+    return create_metabase_card(sql, viz_type)
+
+@function_tool  
+def generate_sql(prompt: str) -> str:
+    """Generate a SQL query from a natural language prompt."""
+    # Implementation with basic pattern matching
+    if "payment methods" in prompt.lower():
+        return "SELECT payment_method, COUNT(*) FROM payments GROUP BY payment_method;"
+    return "SELECT * FROM users LIMIT 10;"
+
+# Agent definition
+metabase_agent = Agent(
+    name="Mika SQL",
+    instructions="You are Mika, an assistant that generates SQL queries and Metabase visualizations from user prompts.",
+    model="gpt-5-nano", 
+    tools=[generate_sql, create_card, end_conversation, list_metabase_databases]
+)
 ```
 
 ### Agent Best Practices
@@ -153,12 +175,25 @@ class MetabaseQueryTool(BaseModel):
 
 ## Metabase API Integration
 
+### Current Implementation Status
+**✅ Implemented Features:**
+- Database listing via `/api/database` endpoint
+- Basic card creation structure (placeholder implementation)
+- Authentication handling with API tokens
+
+**🚧 Planned Features:**
+- Full card creation via `/api/card` endpoint
+- Card retrieval and updates
+- Dashboard operations via `/api/dashboard`
+- Enhanced query execution via `/api/dataset`
+
 ### Key API Endpoints
-- **POST /api/card** - Create new questions/queries
-- **GET/POST /api/dashboard** - Dashboard operations
-- **GET /api/database** - Database metadata
-- **POST /api/dataset** - Execute queries
-- **GET /api/session/current** - User authentication info
+- **✅ GET /api/database** - List databases (implemented)
+- **🚧 POST /api/card** - Create new questions/queries (planned)
+- **🚧 GET/PUT /api/card/:id** - Retrieve/update cards (planned)
+- **🚧 GET/POST /api/dashboard** - Dashboard operations (planned)
+- **🚧 POST /api/dataset** - Execute queries (planned)
+- **🚧 GET /api/session/current** - User authentication info (planned)
 
 ### API Client Pattern
 ```typescript
@@ -176,10 +211,16 @@ class MetabaseClient {
 ```
 
 ### Authentication Handling
+**🚧 Planned Features:**
 - Extract **session tokens** from existing Metabase cookies
 - Implement **token refresh** logic for long-running sessions
 - Handle **CORS preflight** requests properly
 - Support both **cloud and on-premise** Metabase instances
+- **Basic authentication validation** for user security
+
+**✅ Current Implementation:**
+- API token-based authentication for development/testing
+- Environment variable configuration for Metabase URL and tokens
 
 ## Code Style & Standards
 
@@ -277,3 +318,26 @@ async def handle_api_request(request_func):
 - Configure **monitoring and alerting** for production
 
 Remember: This project integrates AI capabilities with existing Metabase installations without requiring forks or modifications, providing a seamless natural language interface for data exploration and visualization.
+
+## Current Development Roadmap
+
+### ✅ Phase 1: Core Agent Implementation (Completed)
+- Mika AI agent with OpenAI Agents SDK
+- Basic FastAPI backend with `/ai/prompt` endpoint
+- Metabase database listing functionality
+- Docker containerization setup
+- Basic SQL generation from natural language
+
+### 🚧 Phase 2: Enhanced Integration (In Progress)
+- Browser extension frontend development (React + TypeScript)
+- Full Metabase API integration (card CRUD operations)
+- Session memory for conversation context
+- Basic authentication and security validation
+- Improved SQL generation and visualization suggestions
+
+### 🚧 Phase 3: Production Features (Planned)
+- Advanced conversation memory and context handling
+- Enhanced security with user authentication validation
+- Performance optimizations and caching
+- Comprehensive testing and error handling
+- Production deployment configurations
