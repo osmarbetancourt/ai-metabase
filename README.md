@@ -41,27 +41,106 @@ This project aims to build a browser extension that embeds an AI-powered chat as
 - **AI Backend:** Python (FastAPI) with Mika agent powered by OpenAI Agents SDK
 - **Metabase API:** REST endpoints for cards, dashboards, and visualizations
 
+
 ## Current Implementation Status
 
-### ✅ Completed Features
+### ✅ Completed & Working Features
 - **Mika Agent**: AI assistant implemented using OpenAI Agents SDK with the following capabilities:
-  - Generate SQL queries from natural language prompts
-  - Create Metabase cards (questions) with SQL and visualization types
-  - Update existing Metabase cards by ID (SQL, name, visualization type)
-  - List and search Metabase cards by name
-  - Access comprehensive Metabase metadata (databases, tables, fields)
-  - End conversation functionality
+	- Generate SQL queries from natural language prompts
+	- Create Metabase cards (questions) with SQL and visualization types
+	- Update existing Metabase cards by ID (SQL, name, visualization type)
+	- List and search Metabase cards by name
+	- Access comprehensive Metabase metadata (databases, tables, fields)
+	- End conversation functionality
 - **FastAPI Backend**: RESTful API with `/ai/prompt` endpoint for processing user requests
 - **Full Metabase API Integration**: Complete CRUD operations for cards, real-time metadata caching
+- **Browser Extension Frontend**: Modern React + TypeScript UI, floating chat widget, robust Markdown/code rendering, Metabase-style UX
+- **Authentication & Security**: Uses Metabase session, supports API tokens, secure storage
+- **Dashboard Operations & Advanced Visualizations**: Create and update dashboards, set visualization types (bar, pie, funnel, etc.)
+- **Session Memory**: Maintains conversation context for more natural chat
 - **Docker Configuration**: Ready-to-deploy containerized setup with docker-compose
 
-### 🚧 In Development
-- Browser extension frontend (React + TypeScript)
-- Session memory for conversation context
-- Basic authentication and security validation
-- Dashboard operations and advanced visualization features
-- Enhanced natural language processing for complex queries
+### 🚦 Testing & Feedback Phase
+- The core features are implemented and working.
+- The project is now in the testing, feedback, and polish phase.
+- Please report bugs, suggest improvements, and help with real-world testing!
 
+---
+
+
+
+## How to Use (Local/Manual Installation)
+
+You can use the Mika Metabase extension locally without waiting for Chrome Web Store approval. Here’s how to set up and use it step by step:
+
+### 1. Clone the Repository
+
+```
+git clone https://github.com/osmarbetancourt/ai-metabase.git
+cd ai-metabase
+```
+
+### 2. Start the AI Backend (FastAPI)
+
+You need Python 3.8+ and Docker (recommended) or you can run it directly:
+
+**With Docker (recommended):**
+
+```
+docker compose up fastapi-backend -d
+```
+
+**Or manually:**
+
+```
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+The backend will start on `http://localhost:8000` by default.
+
+### 3. Build the Browser Extension
+
+Open a new terminal and go to the extension folder:
+
+```
+cd extension
+npm install
+npm run build
+```
+
+This will generate a `build` or `dist` folder (depending on your setup) inside the `extension` directory.
+
+### 4. Load the Extension in Your Browser
+
+**For Chrome/Edge:**
+1. Go to `chrome://extensions` (or `edge://extensions`).
+2. Enable “Developer mode” (top right).
+3. Click “Load unpacked.”
+4. Select the `build` or `dist` folder inside `extension` (not the whole repo).
+5. The Mika Metabase extension should now appear in your browser.
+
+### 5. Configure the Extension
+
+1. Click the extension icon in your browser toolbar.
+2. Set the **AI Backend URL** (e.g., `http://localhost:8000`) and your **Mika API token** (if required).
+3. Save your settings.
+
+### 6. Use Mika in Metabase
+
+1. Go to your Metabase instance in your browser.
+2. You’ll see the Mika chat widget floating in the bottom right corner.
+3. Click it, ask questions, and Mika will help you generate SQL, create dashboards, and more!
+
+---
+
+**Troubleshooting:**
+- Make sure the backend is running and accessible from your browser.
+- If you change backend settings, reload the extension or the Metabase page.
+- For any issues, check the browser console and backend logs for errors.
+
+---
 
 ## Agents & LLM Orchestration Resources
 
@@ -83,15 +162,10 @@ This project aims to build a browser extension that embeds an AI-powered chat as
 
 These resources will help you implement, extend, and maintain the agent logic and LLM orchestration in the backend.
 
+
 ## Next Steps
-- ✅ Set up the FastAPI backend with Mika agent
-- ✅ Implement comprehensive Metabase API integration (database listing, card creation, updates, search)
-- ✅ Configure Docker containerization
-- ✅ Full Metabase metadata caching and context system
-- 🚧 Scaffold the browser extension (React + TypeScript)
-- 🚧 Build the chat widget UI with Mika integration
-- 🚧 Implement session memory for conversation context
-- 🚧 Add basic authentication and security validation
-- 🚧 Dashboard operations and advanced visualization features
-- 🚧 Polish, test, and expand functionality
+- 🧪 More real-world testing and user feedback
+- Bugfixes and UI/UX polish
+- Documentation improvements
+- Prepare for public release (optional: Chrome Web Store, Edge Add-ons, etc.)
 

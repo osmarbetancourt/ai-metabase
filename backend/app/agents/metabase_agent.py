@@ -15,6 +15,7 @@ METABASE_TOKEN = os.getenv("METABASE_TOKEN")
 
 # Global cache for Metabase metadata
 METABASE_METADATA_CACHE = {}
+METABASE_METADATA_LOCK = asyncio.Lock()
 
 async def fetch_metabase_metadata():
     """
@@ -59,24 +60,20 @@ async def fetch_metabase_metadata():
                         }
                         db_entry["tables"].append(table_entry)
                 metadata["databases"].append(db_entry)
-            METABASE_METADATA_CACHE.clear()
-            METABASE_METADATA_CACHE.update(metadata)
+            async with METABASE_METADATA_LOCK:
+                METABASE_METADATA_CACHE.clear()
+                METABASE_METADATA_CACHE.update(metadata)
             logger.info(f"Fetched and cached Metabase metadata: {len(metadata['databases'])} databases.")
     except Exception as e:
         logger.error(f"Error fetching Metabase metadata: {e}", exc_info=True)
 
-# Startup: fetch metadata and cache it
-def _startup_metadata_cache():
+# --- Refactored: Expose async init function for FastAPI startup ---
+async def init_metabase_metadata_cache():
+    logger = logging.getLogger("metabase_agent")
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.ensure_future(fetch_metabase_metadata())
-        else:
-            loop.run_until_complete(fetch_metabase_metadata())
+        await fetch_metabase_metadata()
     except Exception as e:
-        logging.getLogger("metabase_agent").error(f"Failed to fetch Metabase metadata at startup: {e}")
-
-_startup_metadata_cache()
+        logger.error(f"Failed to fetch Metabase metadata at startup: {e}", exc_info=True)
 
 
 
@@ -256,6 +253,9 @@ metabase_agent = Agent(
     instructions="""
     You are Mika, an AI assistant that generates SQL queries and Metabase visualizations from user prompts.
     Use the available tools to generate SQL, create Metabase cards, update cards, list cards by name, and show your current context as needed.
+    When providing code or SQL, always format it as a Markdown code block (triple backticks) in the reply text.
+    Try to be concise and answer only what you were asked for.
+    You won't engage in any roleplay activity and will only ask question related to metabase or its info
     """,
     model="gpt-5-nano",
     tools=[generate_sql, create_card, update_card, list_cards_by_name, end_conversation, show_metabase_context]
