@@ -1,0 +1,42 @@
+{
+  "servers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "awslabs.aws-api-mcp-server": {
+      "command": "python",
+      "args": [
+        "-m",
+        "awslabs.aws_api_mcp_server.server"
+      ],
+      "env": {
+        "AWS_REGION": "us-east-1"
+      }
+    },
+    "aws-knowledge-mcp-server": {
+      "url": "https://knowledge-mcp.global.api.aws"
+    },
+    "aws-diagram": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "e:/moneybook/mercedes-demo/internal_docs/architecture:/tmp/generated-diagrams",
+        "mcp/aws-diagram"
+      ]
+    },
+    "hetzner-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "${workspaceFolder}/.env:/app/.env:ro",
+        "betancourtosmar/hetzner-mcp"
+      ]
+    }
+  }
+}
