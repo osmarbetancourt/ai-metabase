@@ -1,7 +1,7 @@
 #Example of Docker Compose on how to attach the agent to your Metabase on prem site
 services:
   metabase:
-    image: metabase/metabase
+    image: metabase/metabase:latest
     container_name: metabase-local
     ports:
       - "3030:3000"  # Use 3030 to avoid conflict with 3000
@@ -15,8 +15,8 @@ services:
     container_name: fastapi-local
     ports:
       - "8080:8000"  # Use 8080 to avoid conflict with 8000
-    environment:
-      - OPENAI_API_KEY=your-key
+    env_file:
+      - .env
     volumes:
       - ./backend:/app
 
