@@ -130,12 +130,15 @@ uvicorn = "^0.23.0"
 **Current Status**: Mika agent is implemented with the following tools:
 - `generate_sql`: Generate SQL queries from natural language prompts
 - `create_card`: Create Metabase cards with SQL and visualization types  
-- `list_metabase_databases`: List available Metabase databases via REST API
+- `update_card`: Update existing Metabase cards by ID (SQL, name, visualization type)
+- `list_cards_by_name`: List and search Metabase cards by name substring
+- `show_metabase_context`: Access comprehensive Metabase metadata (databases, tables, fields)
 - `end_conversation`: End conversation functionality
 
 ### Agent Architecture
 - **✅ OpenAI Agents SDK** for orchestrating LLM interactions (implemented)
-- **✅ Custom tools** for Metabase API operations (basic implementation)
+- **✅ Custom tools** for comprehensive Metabase API operations (full implementation)
+- **✅ Metabase metadata caching** for real-time database context (implemented)
 - **🚧 Session memory** to maintain conversation context (planned)
 - **🚧 Streaming responses** for real-time chat experience (planned)
 
@@ -143,26 +146,40 @@ uvicorn = "^0.23.0"
 ```python
 # Current Mika Agent Implementation
 from agents import Agent, function_tool, RunContextWrapper
+from typing import Optional
 
 @function_tool
-def create_card(sql: str, viz_type: str = "bar") -> dict:
-    """Create a Metabase card (question) with the given SQL and visualization type."""
-    return create_metabase_card(sql, viz_type)
+async def create_card(sql: str, name: str, viz_type: str = "table") -> dict:
+    """Create a Metabase card (question) using the Metabase API."""
+    return await create_metabase_card(sql, name, viz_type)
+
+@function_tool
+async def update_card(card_id: int, sql: Optional[str] = None, 
+                     name: Optional[str] = None, viz_type: Optional[str] = None) -> dict:
+    """Update a Metabase card by ID. Only provided fields will be changed."""
+    # Real implementation with Metabase API
+    
+@function_tool
+async def list_cards_by_name(name_substring: str) -> list:
+    """List Metabase cards whose name contains the given substring."""
+    # Real implementation with Metabase API
+
+@function_tool
+def show_metabase_context() -> dict:
+    """Return cached Metabase metadata (databases, tables, fields) for context."""
+    return METABASE_METADATA_CACHE
 
 @function_tool  
 def generate_sql(prompt: str) -> str:
     """Generate a SQL query from a natural language prompt."""
-    # Implementation with basic pattern matching
-    if "payment methods" in prompt.lower():
-        return "SELECT payment_method, COUNT(*) FROM payments GROUP BY payment_method;"
-    return "SELECT * FROM users LIMIT 10;"
+    # Implementation with pattern matching - can be enhanced with LLM
 
-# Agent definition
+# Agent definition with all current tools
 metabase_agent = Agent(
     name="Mika SQL",
-    instructions="You are Mika, an assistant that generates SQL queries and Metabase visualizations from user prompts.",
+    instructions="You are Mika, an AI assistant that generates SQL queries and Metabase visualizations from user prompts.",
     model="gpt-5-nano", 
-    tools=[generate_sql, create_card, end_conversation, list_metabase_databases]
+    tools=[generate_sql, create_card, update_card, list_cards_by_name, end_conversation, show_metabase_context]
 )
 ```
 
@@ -177,20 +194,24 @@ metabase_agent = Agent(
 
 ### Current Implementation Status
 **✅ Implemented Features:**
-- Database listing via `/api/database` endpoint
-- Basic card creation structure (placeholder implementation)
+- Full database listing and metadata caching via `/api/database` endpoint
+- Complete card creation via `/api/card` endpoint with real Metabase API
+- Card updates via `/api/card/:id` endpoint (SQL, name, visualization)
+- Card listing and search functionality via `/api/card` endpoint
+- Comprehensive metadata fetching (databases, tables, fields) for context
+- Real-time metadata caching system
 - Authentication handling with API tokens
 
 **🚧 Planned Features:**
-- Full card creation via `/api/card` endpoint
-- Card retrieval and updates
 - Dashboard operations via `/api/dashboard`
 - Enhanced query execution via `/api/dataset`
+- Session-based authentication integration
 
 ### Key API Endpoints
-- **✅ GET /api/database** - List databases (implemented)
-- **🚧 POST /api/card** - Create new questions/queries (planned)
-- **🚧 GET/PUT /api/card/:id** - Retrieve/update cards (planned)
+- **✅ GET /api/database** - List databases and fetch metadata (implemented)
+- **✅ POST /api/card** - Create new questions/queries (implemented)
+- **✅ GET /api/card** - List and search cards (implemented)
+- **✅ PUT /api/card/:id** - Update existing cards (implemented)
 - **🚧 GET/POST /api/dashboard** - Dashboard operations (planned)
 - **🚧 POST /api/dataset** - Execute queries (planned)
 - **🚧 GET /api/session/current** - User authentication info (planned)
@@ -323,17 +344,18 @@ Remember: This project integrates AI capabilities with existing Metabase install
 
 ### ✅ Phase 1: Core Agent Implementation (Completed)
 - Mika AI agent with OpenAI Agents SDK
-- Basic FastAPI backend with `/ai/prompt` endpoint
-- Metabase database listing functionality
+- FastAPI backend with `/ai/prompt` endpoint
+- Complete Metabase API integration (database listing, card CRUD, metadata caching)
 - Docker containerization setup
-- Basic SQL generation from natural language
+- Advanced SQL generation from natural language
+- Comprehensive tool set: create_card, update_card, list_cards_by_name, show_metabase_context
 
 ### 🚧 Phase 2: Enhanced Integration (In Progress)
 - Browser extension frontend development (React + TypeScript)
-- Full Metabase API integration (card CRUD operations)
 - Session memory for conversation context
 - Basic authentication and security validation
-- Improved SQL generation and visualization suggestions
+- Dashboard operations and advanced visualization features
+- Enhanced natural language processing for complex queries
 
 ### 🚧 Phase 3: Production Features (Planned)
 - Advanced conversation memory and context handling

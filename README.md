@@ -47,17 +47,20 @@ This project aims to build a browser extension that embeds an AI-powered chat as
 - **Mika Agent**: AI assistant implemented using OpenAI Agents SDK with the following capabilities:
   - Generate SQL queries from natural language prompts
   - Create Metabase cards (questions) with SQL and visualization types
-  - List available Metabase databases via REST API
+  - Update existing Metabase cards by ID (SQL, name, visualization type)
+  - List and search Metabase cards by name
+  - Access comprehensive Metabase metadata (databases, tables, fields)
   - End conversation functionality
 - **FastAPI Backend**: RESTful API with `/ai/prompt` endpoint for processing user requests
+- **Full Metabase API Integration**: Complete CRUD operations for cards, real-time metadata caching
 - **Docker Configuration**: Ready-to-deploy containerized setup with docker-compose
 
 ### 🚧 In Development
 - Browser extension frontend (React + TypeScript)
 - Session memory for conversation context
 - Basic authentication and security validation
-- Enhanced Metabase API integration (card updates, retrieval)
-- Advanced SQL generation and visualization suggestions
+- Dashboard operations and advanced visualization features
+- Enhanced natural language processing for complex queries
 
 
 ## Agents & LLM Orchestration Resources
@@ -82,12 +85,13 @@ These resources will help you implement, extend, and maintain the agent logic an
 
 ## Next Steps
 - ✅ Set up the FastAPI backend with Mika agent
-- ✅ Implement basic Metabase API integration (database listing, card creation)
+- ✅ Implement comprehensive Metabase API integration (database listing, card creation, updates, search)
 - ✅ Configure Docker containerization
+- ✅ Full Metabase metadata caching and context system
 - 🚧 Scaffold the browser extension (React + TypeScript)
 - 🚧 Build the chat widget UI with Mika integration
 - 🚧 Implement session memory for conversation context
 - 🚧 Add basic authentication and security validation
-- 🚧 Enhanced Metabase API calls (card updates, retrieval, dashboard operations)
+- 🚧 Dashboard operations and advanced visualization features
 - 🚧 Polish, test, and expand functionality
 
