@@ -2,8 +2,8 @@
   "name": "extension",
   "displayName": "Extension",
   "version": "0.0.1",
-  "description": "Mika AI Metabase assistant",
-  "author": "Osmar Betancourt oaba.dev@gmail.com",
+  "description": "Mika AI Metabase",
+  "author": "Osmar Betancourt oaba.dev",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
@@ -26,6 +26,9 @@
   "manifest": {
     "host_permissions": [
       "https://*/*"
+    ],
+    "permissions": [
+      "storage"
     ]
   }
 }

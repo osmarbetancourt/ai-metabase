@@ -38,18 +38,17 @@ const buttonStyle: React.CSSProperties = {
 }
 
 const containerStyle: React.CSSProperties = {
-  maxWidth: 500,
-  minWidth: 350,
-  margin: "20px auto",
+  maxWidth: 400,
+  margin: "40px auto",
   background: "#fff",
   border: "1px solid #e0e0e0",
   borderRadius: 12,
   boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-  padding: 24,
+  padding: 32,
   fontFamily: "inherit"
 }
 
-const Popup = () => {
+const Options = () => {
   const [settings, setSettings] = useState(defaultSettings)
   const [saved, setSaved] = useState(false)
 
@@ -118,4 +117,4 @@ const Popup = () => {
   )
 }
 
-export default Popup
+export default Options
