@@ -49,13 +49,16 @@ const containerStyle: React.CSSProperties = {
 }
 
 const Options = () => {
+  console.log('[Mika] Options rendered')
   const [settings, setSettings] = useState(defaultSettings)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loginStatus, setLoginStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    // Load non-sensitive settings from sync
+    console.log('[Mika] useEffect: loading settings from chrome.storage.sync')
     chrome.storage.sync.get([STORAGE_KEY], (result) => {
+      console.log('[Mika] chrome.storage.sync.get result:', result)
       if (chrome.runtime.lastError) {
         setError("Failed to load settings: " + chrome.runtime.lastError.message)
         return
@@ -63,6 +66,7 @@ const Options = () => {
       const syncSettings = result[STORAGE_KEY] || {}
       // Load sensitive fields from local
       chrome.storage.local.get([STORAGE_KEY], (localResult) => {
+        console.log('[Mika] chrome.storage.local.get result:', localResult)
         if (chrome.runtime.lastError) {
           setError("Failed to load sensitive settings: " + chrome.runtime.lastError.message)
           return
@@ -73,6 +77,11 @@ const Options = () => {
           ...syncSettings,
           ...localSettings // password from local overrides sync
         })
+        console.log('[Mika] Settings loaded:', {
+          ...defaultSettings,
+          ...syncSettings,
+          ...localSettings
+        })
       })
     })
   }, [])
@@ -81,8 +90,9 @@ const Options = () => {
     setSettings({ ...settings, [e.target.name]: e.target.value })
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError(null)
+    setLoginStatus(null)
     // Validate required fields
     if (!settings.mikaUrl || !settings.metabaseUrl || !settings.username) {
       setError("Please fill in all required fields.")
@@ -97,13 +107,33 @@ const Options = () => {
         return
       }
       // Save sensitive fields to local
-      chrome.storage.local.set({ [STORAGE_KEY]: { password: settings.password } }, () => {
+      chrome.storage.local.set({ [STORAGE_KEY]: { password: settings.password } }, async () => {
         if (chrome.runtime.lastError) {
           setError("Failed to save sensitive settings: " + chrome.runtime.lastError.message)
           return
         }
         setSaved(true)
         setTimeout(() => setSaved(false), 1500)
+        // --- LOGIN LOGIC ---
+        try {
+          console.log('[Mika] Attempting login to', `${settings.mikaUrl.replace(/\/$/, "")}/login`)
+          const res = await fetch(`${settings.mikaUrl.replace(/\/$/, "")}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: settings.username, password: settings.password })
+          })
+          console.log('[Mika] Login fetch response:', res)
+          if (!res.ok) {
+            setLoginStatus("Login failed: Invalid credentials or server error.")
+            return
+          }
+          const data = await res.json()
+          console.log('[Mika] Login success, data:', data)
+          setLoginStatus("Login successful!")
+        } catch (err) {
+          console.error('[Mika] Login error', err)
+          setLoginStatus("Login failed: Network error.")
+        }
       })
     })
   }
@@ -148,9 +178,10 @@ const Options = () => {
         onChange={handleChange}
         placeholder="Metabase Password"
       />
-      <button style={buttonStyle} onClick={handleSave}>Save Settings</button>
-      {saved && <div style={{ color: "#388e3c", marginTop: 12 }}>Settings saved!</div>}
-      {error && <div style={{ color: "#d32f2f", marginTop: 12 }}>{error}</div>}
+  <button style={buttonStyle} onClick={handleSave}>Save & Login</button>
+  {saved && <div style={{ color: "#388e3c", marginTop: 12 }}>Settings saved!</div>}
+  {loginStatus && <div style={{ color: loginStatus.includes("success") ? "#388e3c" : "#d32f2f", marginTop: 12 }}>{loginStatus}</div>}
+  {error && <div style={{ color: "#d32f2f", marginTop: 12 }}>{error}</div>}
     </div>
   )
 }
