@@ -1,4 +1,3 @@
-
 import os
 import logging
 from agents import Agent, Runner, function_tool, RunContextWrapper
@@ -6,6 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 import httpx
 from dotenv import load_dotenv
+import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -13,44 +13,116 @@ load_dotenv()
 METABASE_URL = os.getenv("METABASE_URL")
 METABASE_TOKEN = os.getenv("METABASE_TOKEN")
 
+# Global cache for Metabase metadata
+METABASE_METADATA_CACHE = {}
 
-# Placeholder for Metabase API interaction (to be implemented)
-def create_metabase_card(sql: str, viz_type: str = "bar") -> dict:
-    # TODO: Implement actual Metabase API call
-    return {"card_id": 123, "url": f"{METABASE_URL}/card/123", "viz_type": viz_type}
-
-# Tool: List Metabase databases
-@function_tool
-async def list_metabase_databases() -> str:
+async def fetch_metabase_metadata():
     """
-    List all databases available in Metabase using the REST API.
+    Fetch all databases, tables, and fields from Metabase and cache them.
+    Use this tool to get the latest metadata from Metabase and have the context whenever an user asks a question related to DBs
     """
     logger = logging.getLogger("metabase_agent")
     if not METABASE_URL or not METABASE_TOKEN:
-        logger.error("Metabase URL or token not configured.")
-        return "Metabase URL or token not configured."
-    url = f"{METABASE_URL}/api/database"
+        logger.error("Metabase URL or token not configured for metadata fetch.")
+        return
     headers = {"X-API-Key": METABASE_TOKEN}
-    logger.info(f"Attempting to connect to Metabase at {url}")
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(url, headers=headers, timeout=10)
-            logger.info(f"Metabase API response status: {resp.status_code}")
-            resp.raise_for_status()
-            resp_json = resp.json()
-            # Metabase /api/database returns a list (array) or sometimes a dict with 'data'
-            if isinstance(resp_json, list):
-                dbs = resp_json
-            elif isinstance(resp_json, dict) and "data" in resp_json:
-                dbs = resp_json["data"]
+            # Get all databases
+            db_url = f"{METABASE_URL}/api/database"
+            db_resp = await client.get(db_url, headers=headers, timeout=10)
+            db_resp.raise_for_status()
+            db_json = db_resp.json()
+            if isinstance(db_json, list):
+                dbs = db_json
+            elif isinstance(db_json, dict) and "data" in db_json:
+                dbs = db_json["data"]
             else:
                 dbs = []
-            logger.info(f"Received {len(dbs)} databases from Metabase.")
-            names = [db.get("name", "(no name)") for db in dbs]
-            return "Databases: " + ", ".join(names)
+            # For each database, get tables and fields
+            metadata = {"databases": []}
+            for db in dbs:
+                db_id = db.get("id")
+                db_entry = {"id": db_id, "name": db.get("name"), "tables": []}
+                if db_id is not None:
+                    tables_url = f"{METABASE_URL}/api/database/{db_id}/metadata"
+                    tables_resp = await client.get(tables_url, headers=headers, timeout=10)
+                    tables_resp.raise_for_status()
+                    tables_json = tables_resp.json()
+                    for table in tables_json.get("tables", []):
+                        table_entry = {
+                            "id": table.get("id"),
+                            "name": table.get("name"),
+                            "fields": [
+                                {"id": f.get("id"), "name": f.get("name"), "display_name": f.get("display_name"), "base_type": f.get("base_type")} for f in table.get("fields", [])
+                            ]
+                        }
+                        db_entry["tables"].append(table_entry)
+                metadata["databases"].append(db_entry)
+            METABASE_METADATA_CACHE.clear()
+            METABASE_METADATA_CACHE.update(metadata)
+            logger.info(f"Fetched and cached Metabase metadata: {len(metadata['databases'])} databases.")
     except Exception as e:
-        logger.error(f"Error listing databases: {e}", exc_info=True)
-        return "Error listing databases: internal error"
+        logger.error(f"Error fetching Metabase metadata: {e}", exc_info=True)
+
+# Startup: fetch metadata and cache it
+def _startup_metadata_cache():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(fetch_metabase_metadata())
+        else:
+            loop.run_until_complete(fetch_metabase_metadata())
+    except Exception as e:
+        logging.getLogger("metabase_agent").error(f"Failed to fetch Metabase metadata at startup: {e}")
+
+_startup_metadata_cache()
+
+
+
+
+# Real Metabase API interaction: create a card (question) with SQL, viz type, name, and visualization_settings
+async def create_metabase_card(sql: str, name: str, viz_type: str = "table") -> dict:
+    """
+    Create a Metabase card (question) using the API. Required fields: name, dataset_query, display. visualization_settings is always set to {}.
+    """
+    logger = logging.getLogger("metabase_agent")
+    if not METABASE_URL or not METABASE_TOKEN:
+        logger.error("Metabase URL or token not configured for card creation.")
+        return {"error": "Metabase URL or token not configured."}
+    db_id = None
+    if METABASE_METADATA_CACHE.get("databases"):
+        db_id = METABASE_METADATA_CACHE["databases"][0].get("id")
+    if not db_id:
+        logger.error("No database found in cached metadata.")
+        return {"error": "No database found in cached metadata."}
+    url = f"{METABASE_URL}/api/card"
+    headers = {"X-API-Key": METABASE_TOKEN, "Content-Type": "application/json"}
+    payload = {
+        "name": name,
+        "dataset_query": {
+            "type": "native",
+            "native": {"query": sql},
+            "database": db_id
+        },
+        "display": viz_type or "table",
+        "visualization_settings": {}
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers, json=payload, timeout=15)
+            logger.info(f"Metabase card creation status: {resp.status_code}")
+            resp.raise_for_status()
+            data = resp.json()
+            card_id = data.get("id")
+            card_url = f"{METABASE_URL}/card/{card_id}" if card_id else None
+            return {"card_id": card_id, "url": card_url, "viz_type": viz_type, "raw": data}
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Metabase API error: {e.response.status_code} {e.response.text}")
+        return {"error": f"Metabase API error: {e.response.status_code} {e.response.text}"}
+    except Exception as e:
+        logger.error(f"Error creating Metabase card: {e}", exc_info=True)
+        return {"error": f"Error creating Metabase card: {e}"}
 
 # Tool: Generate SQL from prompt
 @function_tool
@@ -62,13 +134,38 @@ def generate_sql(prompt: str) -> str:
         return "SELECT payment_method, COUNT(*) FROM payments GROUP BY payment_method;"
     return "SELECT * FROM users LIMIT 10;"
 
-# Tool: Create Metabase card
+
+
+# Tool: Create Metabase card (async, uses real API)
 @function_tool
-def create_card(sql: str, viz_type: str = "bar") -> dict:
+async def create_card(
+        sql: str,
+        name: str,
+        viz_type: str = "table"
+) -> dict:
+        """
+        Create a Metabase card (question) using the Metabase API.
+        Required fields: sql, name, viz_type.
+
+        - name: The card's name (required).
+        - sql: The SQL query (required).
+        - viz_type: Visualization type (required, default "table").
+            Supported types: "table", "bar", "line", "area", "pie", "scatter", "funnel", "number", "map", "pivot", "progress", "combo", "gauge".
+
+        Example usage:
+            create_card(sql="SELECT ...", name="My Card", viz_type="bar")
+        """
+        return await create_metabase_card(sql, name, viz_type)
+
+
+# Tool: Return current Metabase metadata context
+@function_tool
+def show_metabase_context() -> dict:
     """
-    Create a Metabase card (question) with the given SQL and visualization type.
+    Return the current cached Metabase metadata (databases, tables, fields) for Mika's context.
+    Always use this tool to get the latest metadata from Metabase and have the context whenever an user asks a question to make a SQL query
     """
-    return create_metabase_card(sql, viz_type)
+    return METABASE_METADATA_CACHE
 
 # Tool: End conversation (for future use)
 @function_tool
@@ -79,15 +176,20 @@ def end_conversation(ctx: RunContextWrapper) -> str:
     ctx.conversation_ended = True
     return "Conversation ended."
 
-# Agent definition
+# Agent definition (no developer arg)
 metabase_agent = Agent(
     name="Mika SQL",
     instructions="""
-    You are Mika, an assistant that generates SQL queries and Metabase visualizations from user prompts.
-    Use the available tools to generate SQL, list Metabase databases, and create Metabase cards as needed.
-    If the user wants to end the conversation, use the end_conversation tool.
-    To show the user all available databases, use the list_metabase_databases tool.
+    You are Mika, an AI assistant that generates SQL queries and Metabase visualizations from user prompts.
+    Use the available tools to generate SQL, create Metabase cards, and show your current context as needed.
     """,
     model="gpt-5-nano",
-    tools=[generate_sql, create_card, end_conversation, list_metabase_databases]
+    tools=[generate_sql, create_card, end_conversation, show_metabase_context]
 )
+
+# Helper to inject metadata context for agent runs
+def get_metabase_agent_context(extra: Optional[dict] = None) -> dict:
+    ctx = {"metabase_metadata": METABASE_METADATA_CACHE}
+    if extra:
+        ctx.update(extra)
+    return ctx
