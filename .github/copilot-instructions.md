@@ -363,11 +363,10 @@ Remember: This project integrates AI capabilities with existing Metabase install
 - **Floating Chat Widget**: Modern UI with Metabase-style design and dark mode support
 - **Full Backend API**: FastAPI service with comprehensive error handling and logging
 - **Multi-Database Support**: Create cards in specific databases by name
-- **Session Management**: Token-based authentication with automatic refresh
+- **Session Management**: Token-based authentication; token refresh planned
 - **Markdown Rendering**: Rich text display with syntax-highlighted code blocks
 - **Settings Management**: Popup and options pages for configuration
 - **Docker Deployment**: Production-ready containerized setup
-
 ### 🧪 Current Phase: Testing & Feedback
 The project has moved from development to **testing and feedback phase**. All core features are implemented and functional:
 - Extension successfully injects into Metabase UI
