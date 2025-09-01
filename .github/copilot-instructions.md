@@ -241,13 +241,17 @@ class MetabaseClient {
 ```
 
 ### Authentication Handling
+**Seamless Authentication**: Reuse existing Metabase sessions when present; fallback to `/api/login` for credential validation
+
 **✅ Current Implementation:**
 - API token-based authentication for development/testing
 - Environment variable configuration for Metabase URL and tokens
 - Session-based authentication with token management
 - Login endpoint with credential validation
-- Token storage and refresh logic
+- Token storage
 
+**🚧 Planned Enhancements:**
+- Implement token refresh logic for long-running sessions (auto-refresh)
 **🚧 Planned Enhancements:**
 - Extract **session tokens** from existing Metabase cookies
 - Implement **token refresh** logic for long-running sessions
