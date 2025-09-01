@@ -36,7 +36,7 @@ This project is building an AI-powered browser extension that embeds a chat assi
 - **Python 3.8+** as base runtime (✅ Implemented)
 
 ### Integration & APIs
-- **Metabase REST API** for creating cards, dashboards, and visualizations (✅ Complete implementation)
+- **Metabase REST API** for creating cards and visualizations (dashboards planned) (✅ Implemented)
 - **OpenAI API** for natural language processing and SQL generation (✅ Implemented via Agents SDK)
 - **Docker** for containerized deployment (✅ Implemented)
 
