@@ -58,10 +58,9 @@ const Popup = () => {
   useEffect(() => {
     console.log('[Mika] useEffect: loading settings from chrome.storage.sync')
     chrome.storage.sync.get([STORAGE_KEY], (result) => {
-      console.log('[Mika] chrome.storage.sync.get result:', result)
       if (result[STORAGE_KEY]) {
         setSettings(result[STORAGE_KEY])
-        console.log('[Mika] Settings loaded from storage:', result[STORAGE_KEY])
+        console.log('[Mika] Settings loaded from storage')
       }
     })
   }, [])
@@ -71,23 +70,23 @@ const Popup = () => {
   }
 
   const handleSave = async () => {
-    console.log("[Mika] handleSave called", settings)
+  console.log("[Mika] handleSave called")
     setLoginStatus(null)
     // Try to login to Mika backend
     try {
-      console.log("[Mika] Sending fetch to", `${settings.mikaUrl.replace(/\/$/, "")}/login`)
+  console.log("[Mika] Sending fetch to /login endpoint")
       const res = await fetch(`${settings.mikaUrl.replace(/\/$/, "")}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: settings.username, password: settings.password })
       })
-      console.log("[Mika] Fetch response", res)
+  // No sensitive info in fetch response log
       if (!res.ok) {
         setLoginStatus("Login failed: Invalid credentials or server error.")
         return
       }
       const data = await res.json()
-      console.log("[Mika] Login success, data:", data)
+  console.log("[Mika] Login success, token received")
       // Save token and settings
       chrome.storage.sync.set({
         [STORAGE_KEY]: { ...settings, mikaToken: data.token, mikaTokenExpires: Date.now() + (data.expires_in * 1000) }
