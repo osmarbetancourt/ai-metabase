@@ -16,6 +16,15 @@
 
 This project aims to build a browser extension that embeds an AI-powered chat assistant called **Mika** directly into the Metabase UI (cloud or on-premise). Mika helps users generate SQL queries, create dashboards, and visualize data using natural language, all without modifying or forking Metabase itself.
 
+## Demo Video
+
+Check out a quick demo of Mika in action:
+
+<video src="readme_media/mika_demo_vid.mp4" controls width="600">
+  Your browser does not support the video tag.
+</video>
+
+
 ## Main Idea
 
 - **Browser Extension (React + TypeScript):** Injects a floating chat widget into every Metabase page. Handles user prompts and displays AI responses from Mika.
@@ -35,12 +44,6 @@ This project aims to build a browser extension that embeds an AI-powered chat as
 3. Extension sends the prompt to Mika via the AI backend.
 4. Mika processes the request and returns SQL and visualization instructions.
 5. Extension creates a new question in Metabase via the API, sets the visualization, and returns a link or preview to the user.
-
-## Demo Video
-
-Check out a quick demo of Mika in action:
-
-![Mika Demo](./readme_media/mika_demo_vid.mp4)
 
 ## Tech Stack
 - **Browser Extension:** React + TypeScript (Plasmo or crxjs)
