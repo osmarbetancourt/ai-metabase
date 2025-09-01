@@ -220,7 +220,7 @@ async def create_card(
     sql: str,
     name: str,
     viz_type: str = "table",
-    db_name: Optional[str] = None
+    db_name: str = None
 ) -> dict:
     """
     Create a Metabase card (question) using the Metabase API.
@@ -233,7 +233,7 @@ async def create_card(
     - db_name: (optional) The name of the database to use. If not provided, the first database in Metabase will be used.
 
     Usage for Mika:
-    - If you know which database to use (e.g., the user mentions it in their prompt), pass db_name as that database's name (case-insensitive).
+    - If you know which database to use (e.g., the user mentions it in their prompt), pass db_name as that database's name (case-insensitive), always try to pass this argument please.
     - If db_name is not provided, Mika will use the first database in the cached metadata.
 
     Example usage:
