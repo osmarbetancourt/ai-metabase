@@ -16,6 +16,15 @@
 
 This project aims to build a browser extension that embeds an AI-powered chat assistant called **Mika** directly into the Metabase UI (cloud or on-premise). Mika helps users generate SQL queries, create dashboards, and visualize data using natural language, all without modifying or forking Metabase itself.
 
+## Demo Video
+
+Check out a quick demo of Mika in action:
+
+<video src="readme_media/mika_demo_vid.mp4" controls width="600">
+  Your browser does not support the video tag.
+</video>
+
+
 ## Main Idea
 
 - **Browser Extension (React + TypeScript):** Injects a floating chat widget into every Metabase page. Handles user prompts and displays AI responses from Mika.
@@ -65,10 +74,13 @@ This project aims to build a browser extension that embeds an AI-powered chat as
 - The project is now in the testing, feedback, and polish phase.
 - Please report bugs, suggest improvements, and help with real-world testing!
 
----
 
 
 
+
+## Note on the `.vscode` Folder
+
+The `.vscode` folder in this repository is mainly used for Model Context Protocol (MCP) tools to provide extra context to your AI Agent inside your code editor. Some of these tools are custom made, and others are standard. **They are not required for building, running, or using this project.** You can safely ignore or remove the `.vscode` folder if you do not use MCP or AI coding tools.
 ## How to Use (Local/Manual Installation)
 
 You can use the Mika Metabase extension locally without waiting for Chrome Web Store approval. Here’s how to set up and use it step by step:

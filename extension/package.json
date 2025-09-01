@@ -32,7 +32,9 @@
   },
   "manifest": {
     "host_permissions": [
-      "https://*/*"
+      "https://*/*",
+      "*://*/*",
+      "http://128.140.109.16:8080/*"
     ],
     "permissions": [
       "storage"

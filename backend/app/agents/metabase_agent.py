@@ -79,17 +79,24 @@ async def init_metabase_metadata_cache():
 
 
 # Real Metabase API interaction: create a card (question) with SQL, viz type, name, and visualization_settings
-async def create_metabase_card(sql: str, name: str, viz_type: str = "table") -> dict:
+async def create_metabase_card(sql: str, name: str, viz_type: str = "table", db_name: Optional[str] = None) -> dict:
     """
     Create a Metabase card (question) using the API. Required fields: name, dataset_query, display. visualization_settings is always set to {}.
+    If db_name is provided, will use the database with that name (case-insensitive). Otherwise, uses the first database in the cache.
     """
     logger = logging.getLogger("metabase_agent")
     if not METABASE_URL or not METABASE_TOKEN:
         logger.error("Metabase URL or token not configured for card creation.")
         return {"error": "Metabase URL or token not configured."}
     db_id = None
-    if METABASE_METADATA_CACHE.get("databases"):
-        db_id = METABASE_METADATA_CACHE["databases"][0].get("id")
+    dbs = METABASE_METADATA_CACHE.get("databases", [])
+    if db_name:
+        for db in dbs:
+            if db_name.lower() == db.get("name", "").lower():
+                db_id = db.get("id")
+                break
+    if not db_id and dbs:
+        db_id = dbs[0].get("id")
     if not db_id:
         logger.error("No database found in cached metadata.")
         return {"error": "No database found in cached metadata."}
@@ -210,23 +217,29 @@ def generate_sql(prompt: str) -> str:
 # Tool: Create Metabase card (async, uses real API)
 @function_tool
 async def create_card(
-        sql: str,
-        name: str,
-        viz_type: str = "table"
+    sql: str,
+    name: str,
+    viz_type: str = "table",
+    db_name: str = None
 ) -> dict:
-        """
-        Create a Metabase card (question) using the Metabase API.
-        Required fields: sql, name, viz_type.
+    """
+    Create a Metabase card (question) using the Metabase API.
+    Required fields: sql, name, viz_type.
 
-        - name: The card's name (required).
-        - sql: The SQL query (required).
-        - viz_type: Visualization type (required, default "table").
-            Supported types: "table", "bar", "line", "area", "pie", "scatter", "funnel", "number", "map", "pivot", "progress", "combo", "gauge".
+    - name: The card's name (required).
+    - sql: The SQL query (required).
+    - viz_type: Visualization type (required, default "table").
+      Supported types: "table", "bar", "line", "area", "pie", "scatter", "funnel", "number", "map", "pivot", "progress", "combo", "gauge".
+    - db_name: (optional) The name of the database to use. If not provided, the first database in Metabase will be used.
 
-        Example usage:
-            create_card(sql="SELECT ...", name="My Card", viz_type="bar")
-        """
-        return await create_metabase_card(sql, name, viz_type)
+    Usage for Mika:
+    - If you know which database to use (e.g., the user mentions it in their prompt), pass db_name as that database's name (case-insensitive), always try to pass this argument please.
+    - If db_name is not provided, Mika will use the first database in the cached metadata.
+
+    Example usage:
+        create_card(sql="SELECT ...", name="My Card", viz_type="bar", db_name="my_database")
+    """
+    return await create_metabase_card(sql, name, viz_type, db_name)
 
 
 # Tool: Return current Metabase metadata context

@@ -50,14 +50,17 @@ const containerStyle: React.CSSProperties = {
 }
 
 const Popup = () => {
+  console.log('[Mika] Popup rendered')
   const [settings, setSettings] = useState(defaultSettings)
   const [saved, setSaved] = useState(false)
   const [loginStatus, setLoginStatus] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('[Mika] useEffect: loading settings from chrome.storage.sync')
     chrome.storage.sync.get([STORAGE_KEY], (result) => {
       if (result[STORAGE_KEY]) {
         setSettings(result[STORAGE_KEY])
+        console.log('[Mika] Settings loaded from storage')
       }
     })
   }, [])
@@ -67,19 +70,23 @@ const Popup = () => {
   }
 
   const handleSave = async () => {
+  console.log("[Mika] handleSave called")
     setLoginStatus(null)
     // Try to login to Mika backend
     try {
+  console.log("[Mika] Sending fetch to /login endpoint")
       const res = await fetch(`${settings.mikaUrl.replace(/\/$/, "")}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: settings.username, password: settings.password })
       })
+  // No sensitive info in fetch response log
       if (!res.ok) {
         setLoginStatus("Login failed: Invalid credentials or server error.")
         return
       }
       const data = await res.json()
+  console.log("[Mika] Login success, token received")
       // Save token and settings
       chrome.storage.sync.set({
         [STORAGE_KEY]: { ...settings, mikaToken: data.token, mikaTokenExpires: Date.now() + (data.expires_in * 1000) }
@@ -89,6 +96,7 @@ const Popup = () => {
         setTimeout(() => { setSaved(false); setLoginStatus(null) }, 1500)
       })
     } catch (err) {
+      console.error("[Mika] Login error", err)
       setLoginStatus("Login failed: Network error.")
     }
   }
@@ -133,7 +141,7 @@ const Popup = () => {
         onChange={handleChange}
         placeholder="Mika Password"
       />
-      <button style={buttonStyle} onClick={handleSave}>Save & Login</button>
+  <button style={buttonStyle} onClick={() => { console.log('[Mika] Save & Login button clicked'); handleSave(); }}>Save & Login</button>
       {saved && <div style={{ color: "#388e3c", marginTop: 12 }}>Settings saved!</div>}
       {loginStatus && <div style={{ color: loginStatus.includes("success") ? "#388e3c" : "#d32f2f", marginTop: 12 }}>{loginStatus}</div>}
     </div>
